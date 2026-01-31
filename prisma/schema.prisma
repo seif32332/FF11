@@ -1,0 +1,408 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==================== USERS & AUTH ====================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String
+  avatar        String?
+  role          UserRole  @default(MEMBER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  workspaceMembers  WorkspaceMember[]
+  itemAssignments   ItemAssignment[]
+  comments          Comment[]
+  notifications     Notification[]
+  activities        Activity[]
+  createdBoards     Board[]           @relation("BoardCreator")
+  createdItems      Item[]            @relation("ItemCreator")
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  MEMBER
+  GUEST
+}
+
+// ==================== WORKSPACES ====================
+
+model Workspace {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  icon        String?
+  color       String   @default("#6366f1")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  members WorkspaceMember[]
+  boards  Board[]
+
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String          @id @default(cuid())
+  role        WorkspaceRole   @default(MEMBER)
+  joinedAt    DateTime        @default(now())
+
+  // Relations
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+
+  @@unique([workspaceId, userId])
+  @@map("workspace_members")
+}
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+// ==================== BOARDS ====================
+
+model Board {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  icon        String?
+  color       String   @default("#6366f1")
+  isTemplate  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String
+  creator     User          @relation("BoardCreator", fields: [creatorId], references: [id])
+  creatorId   String
+  columns     BoardColumn[]
+  groups      Group[]
+  views       BoardView[]
+  automations Automation[]
+
+  @@map("boards")
+}
+
+model BoardColumn {
+  id          String     @id @default(cuid())
+  title       String
+  type        ColumnType
+  width       Int        @default(150)
+  position    Int
+  settings    Json       @default("{}")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  board       Board       @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  boardId     String
+  itemValues  ItemValue[]
+
+  @@map("board_columns")
+}
+
+enum ColumnType {
+  TEXT
+  NUMBER
+  STATUS
+  DATE
+  PERSON
+  CHECKBOX
+  LINK
+  FILE
+  RATING
+  FORMULA
+  TIMELINE
+  DROPDOWN
+  EMAIL
+  PHONE
+  LOCATION
+  TAGS
+  PROGRESS
+}
+
+model BoardView {
+  id        String   @id @default(cuid())
+  name      String
+  type      ViewType
+  settings  Json     @default("{}")
+  isDefault Boolean  @default(false)
+  position  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  board   Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  boardId String
+
+  @@map("board_views")
+}
+
+enum ViewType {
+  TABLE
+  KANBAN
+  TIMELINE
+  CALENDAR
+  CHART
+  DASHBOARD
+}
+
+// ==================== GROUPS & ITEMS ====================
+
+model Group {
+  id        String   @id @default(cuid())
+  name      String
+  color     String   @default("#6366f1")
+  position  Int
+  collapsed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  board   Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  boardId String
+  items   Item[]
+
+  @@map("groups")
+}
+
+model Item {
+  id        String   @id @default(cuid())
+  name      String
+  position  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  group        Group            @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId      String
+  creator      User             @relation("ItemCreator", fields: [creatorId], references: [id])
+  creatorId    String
+  values       ItemValue[]
+  assignments  ItemAssignment[]
+  comments     Comment[]
+  attachments  ItemAttachment[]
+  subItems     SubItem[]
+  activities   Activity[]
+
+  @@map("items")
+}
+
+model SubItem {
+  id        String   @id @default(cuid())
+  name      String
+  position  Int
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  item   Item  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId String
+
+  @@map("sub_items")
+}
+
+model ItemValue {
+  id        String   @id @default(cuid())
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  item     Item        @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId   String
+  column   BoardColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  columnId String
+
+  @@unique([itemId, columnId])
+  @@map("item_values")
+}
+
+model ItemAssignment {
+  id         String   @id @default(cuid())
+  assignedAt DateTime @default(now())
+
+  // Relations
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@unique([itemId, userId])
+  @@map("item_assignments")
+}
+
+model ItemAttachment {
+  id        String   @id @default(cuid())
+  name      String
+  url       String
+  type      String
+  size      Int
+  createdAt DateTime @default(now())
+
+  // Relations
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId String
+
+  @@map("item_attachments")
+}
+
+// ==================== COMMENTS ====================
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@map("comments")
+}
+
+// ==================== NOTIFICATIONS ====================
+
+model Notification {
+  id        String           @id @default(cuid())
+  type      NotificationType
+  title     String
+  message   String
+  read      Boolean          @default(false)
+  data      Json             @default("{}")
+  createdAt DateTime         @default(now())
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@map("notifications")
+}
+
+enum NotificationType {
+  MENTION
+  ASSIGNMENT
+  DUE_DATE
+  STATUS_CHANGE
+  COMMENT
+  ITEM_UPDATE
+  AUTOMATION
+}
+
+// ==================== ACTIVITIES ====================
+
+model Activity {
+  id        String       @id @default(cuid())
+  type      ActivityType
+  data      Json         @default("{}")
+  createdAt DateTime     @default(now())
+
+  // Relations
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@map("activities")
+}
+
+enum ActivityType {
+  CREATED
+  UPDATED
+  DELETED
+  MOVED
+  ASSIGNED
+  UNASSIGNED
+  COMMENTED
+  ATTACHMENT_ADDED
+  STATUS_CHANGED
+}
+
+// ==================== AUTOMATIONS ====================
+
+model Automation {
+  id          String           @id @default(cuid())
+  name        String
+  description String?
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Relations
+  board    Board               @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  boardId  String
+  triggers AutomationTrigger[]
+  actions  AutomationAction[]
+
+  @@map("automations")
+}
+
+model AutomationTrigger {
+  id         String      @id @default(cuid())
+  type       TriggerType
+  conditions Json        @default("{}")
+
+  // Relations
+  automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  automationId String
+
+  @@map("automation_triggers")
+}
+
+enum TriggerType {
+  STATUS_CHANGE
+  DATE_ARRIVED
+  ITEM_CREATED
+  ITEM_UPDATED
+  PERSON_ASSIGNED
+  COLUMN_CHANGE
+  EVERY_TIME_PERIOD
+}
+
+model AutomationAction {
+  id       String     @id @default(cuid())
+  type     ActionType
+  settings Json       @default("{}")
+
+  // Relations
+  automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  automationId String
+
+  @@map("automation_actions")
+}
+
+enum ActionType {
+  NOTIFY
+  CHANGE_STATUS
+  ASSIGN_PERSON
+  MOVE_ITEM
+  CREATE_ITEM
+  SEND_EMAIL
+  UPDATE_COLUMN
+  ARCHIVE_ITEM
+}
