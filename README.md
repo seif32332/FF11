@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# نظام إدارة المهام (Monday Clone Arabic)
 
-## Getting Started
+نظام إدارة مهام متكامل يدعم اللغة العربية (RTL) بشكل كامل، مستوحى من Monday.com.
 
-First, run the development server:
+## الميزات الرئيسية
 
+### 1. إدارة اللوحات (Boards)
+- إنشاء وتعديل وحذف اللوحات
+- تخصيص الأعمدة (نصوص، أرقام، تواريخ، أشخاص، حالات)
+- تحديث العناوين والألوان والأحجام
+
+### 2. طرق عرض متعددة
+- **جدول (Table):** العرض التقليدي للمهام
+- **كانبان (Kanban):** سحب وإفلات البطاقات بين الحالات
+- **خط زمن (Timeline):** عرض المهام على نطاق زمني
+- **تقويم (Calendar):** عرض المهام في تقويم شهري
+
+### 3. مركز الإشعارات
+- تنبيهات فورية (Real-time) باستخدام Pusher
+- شارات للرسائل غير المقروءة
+- تمييز الإشعارات كمقروءة
+
+### 4. البحث المتقدم
+- بحث سريع (Cmd+K)
+- بحث في اللوحات والمهام
+- سجل البحث الحديث
+
+### 5. إدارة الملفات
+- رفع الملفات باستخدام Vercel Blob
+- سحب وإفلات (Drag & Drop)
+- معاينة الصور والملفات
+
+## التقنيات المستخدمة
+
+- **Framework:** Next.js 14 (App Router)
+- **Database:** Prisma with PostgreSQL
+- **Styling:** Tailwind CSS v3 (RTL support)
+- **Auth:** NextAuth.js v4
+- **Real-time:** Pusher
+- **Storage:** Vercel Blob
+- **Testing:** Playwright
+
+## الإعداد والتشغيل
+
+1. تثبيت الحزم:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. إعداد قاعدة البيانات:
+```bash
+npx prisma generate
+npx prisma db push
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. تشغيل الخادم المحلي:
+```bash
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## البيئة (Environment Variables)
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+يحتاج المشروع للمتغيرات التالية في ملف `.env`:
+- `DATABASE_URL`
+- `NEXTAUTH_SECRET`
+- `NEXTAUTH_URL`
+- `PUSHER_APP_ID`, `PUSHER_KEY`, `PUSHER_SECRET`
+- `BLOB_READ_WRITE_TOKEN`
