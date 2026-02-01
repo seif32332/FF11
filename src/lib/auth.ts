@@ -1,11 +1,11 @@
-import NextAuth from "next-auth"
-import Credentials from "next-auth/providers/credentials"
-import { compare } from "bcryptjs"
-import { prisma } from "./db"
+import NextAuth, { NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { compare } from "bcryptjs";
+import { prisma } from "./db";
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
+export const authOptions: NextAuthOptions = {
     providers: [
-        Credentials({
+        CredentialsProvider({
             name: "credentials",
             credentials: {
                 email: { label: "البريد الإلكتروني", type: "email" },
@@ -13,24 +13,24 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             },
             async authorize(credentials) {
                 if (!credentials?.email || !credentials?.password) {
-                    return null
+                    return null;
                 }
 
                 const user = await prisma.user.findUnique({
-                    where: { email: credentials.email as string }
-                })
+                    where: { email: credentials.email }
+                });
 
                 if (!user) {
-                    return null
+                    return null;
                 }
 
                 const isPasswordValid = await compare(
-                    credentials.password as string,
+                    credentials.password,
                     user.password
-                )
+                );
 
                 if (!isPasswordValid) {
-                    return null
+                    return null;
                 }
 
                 return {
@@ -38,25 +38,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     email: user.email,
                     name: user.name,
                     image: user.avatar,
-                    role: user.role
-                }
+                };
             }
         })
     ],
     callbacks: {
         async jwt({ token, user }) {
             if (user) {
-                token.id = user.id
-                token.role = (user as { role?: string }).role
+                token.id = user.id;
             }
-            return token
+            return token;
         },
         async session({ session, token }) {
             if (session.user) {
-                session.user.id = token.id as string
-                (session.user as { role?: string }).role = token.role as string
+                session.user.id = token.id as string;
             }
-            return session
+            return session;
         }
     },
     pages: {
@@ -66,4 +63,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     session: {
         strategy: "jwt"
     }
-})
+};
+
+export default NextAuth(authOptions);
+
+// For API routes to get session
+export async function auth() {
+    const { getServerSession } = await import("next-auth/next");
+    return await getServerSession(authOptions);
+}
