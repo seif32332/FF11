@@ -7,7 +7,6 @@ import {
     Home,
     Layout,
     Users,
-    Bell,
     Search,
     Settings,
     LogOut,
@@ -21,6 +20,7 @@ import {
     X
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
+import NotificationDropdown from "@/components/notifications/NotificationDropdown";
 
 interface Workspace {
     id: string;
@@ -256,10 +256,9 @@ export default function DashboardLayout({
                     </button>
 
                     <div className="flex items-center gap-3 mr-auto">
-                        <button className="p-2 rounded-lg hover:bg-white/10 relative">
-                            <Bell className="w-5 h-5" />
-                            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500"></span>
-                        </button>
+                        {session?.user?.id && (
+                            <NotificationDropdown userId={session.user.id} />
+                        )}
                         <div className="avatar avatar-sm">
                             {getUserInitials()}
                         </div>

@@ -18,8 +18,10 @@ import {
     Calendar,
     MessageSquare,
     Paperclip,
-    User as UserIcon
+    User as UserIcon,
+    Settings
 } from "lucide-react";
+import ColumnSettingsModal from "@/components/board/ColumnSettingsModal";
 
 interface Column {
     id: string;
@@ -79,6 +81,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
     const [editingItem, setEditingItem] = useState<string | null>(null);
     const [newItemName, setNewItemName] = useState("");
     const [addingToGroup, setAddingToGroup] = useState<string | null>(null);
+    const [selectedColumn, setSelectedColumn] = useState<Column | null>(null);
 
     useEffect(() => {
         fetchBoard();
@@ -136,6 +139,33 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
             fetchBoard();
         } catch (error) {
             console.error("Error updating value:", error);
+        }
+    };
+
+    const handleUpdateColumn = async (
+        columnId: string,
+        settings: { title: string; type: string; width: number; options?: { label: string; color: string }[] }
+    ) => {
+        try {
+            await fetch(`/api/boards/${id}/columns/${columnId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(settings),
+            });
+            fetchBoard();
+        } catch (error) {
+            console.error("Error updating column:", error);
+        }
+    };
+
+    const handleDeleteColumn = async (columnId: string) => {
+        try {
+            await fetch(`/api/boards/${id}/columns/${columnId}`, {
+                method: "DELETE",
+            });
+            fetchBoard();
+        } catch (error) {
+            console.error("Error deleting column:", error);
         }
     };
 
@@ -360,10 +390,19 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
                                             {board.columns.filter(c => c.type !== "TEXT").map((column) => (
                                                 <th
                                                     key={column.id}
-                                                    className="p-2 text-right text-sm font-medium text-gray-400"
+                                                    className="p-2 text-right text-sm font-medium text-gray-400 group/col"
                                                     style={{ minWidth: column.width }}
                                                 >
-                                                    {column.title}
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <span>{column.title}</span>
+                                                        <button
+                                                            onClick={() => setSelectedColumn(column)}
+                                                            className="p-1 rounded hover:bg-white/10 opacity-0 group-hover/col:opacity-100 transition-opacity"
+                                                            title="إعدادات العمود"
+                                                        >
+                                                            <Settings className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </div>
                                                 </th>
                                             ))}
                                             <th className="w-20 p-2"></th>
@@ -487,6 +526,16 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
                     إضافة مجموعة جديدة
                 </button>
             </div>
+
+            {/* Column Settings Modal */}
+            {selectedColumn && (
+                <ColumnSettingsModal
+                    column={selectedColumn}
+                    onSave={handleUpdateColumn}
+                    onDelete={handleDeleteColumn}
+                    onClose={() => setSelectedColumn(null)}
+                />
+            )}
         </div>
     );
 }
